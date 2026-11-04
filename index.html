@@ -1510,6 +1510,7 @@ body.mil-in #modal{z-index:8100!important}body.mil-in #dock{z-index:8050!importa
 .jb.grid .jb-pc{display:grid;grid-template-columns:40px minmax(0,1fr);gap:7px;width:100%;min-width:0;min-height:0;height:auto;padding:4px 6px;transform:none;margin:0}
 .jb.grid .jb-pc .jb-face{width:40px;height:52px;min-height:0;font-size:15px}.jb.grid .jb-pc .jb-st{min-width:0;gap:0;font-size:12px}.jb.grid .jb-pc .jb-st>b{font-size:13px}.jb.grid .jb-pc .jb-g{gap:4px;font-size:11.5px;line-height:1.2}.jb.grid .jb-pc .jb-g small{font-size:10.5px}.jb.grid .jb-pc .jb-g b{font-size:12.5px}.jb.grid .jb-pc .jb-tags{font-size:10.5px}
 .jb.grid .jb-low{min-height:0;grid-template-columns:none}
+.ccf-p{margin:8px 0;padding:8px 11px;background:var(--desk2);border-left:2px solid var(--amber)}.ccf-p b{font:700 16px var(--fb);color:var(--paper)}.ccf-p p{margin:3px 0;font-size:14px}#ccfT{font:400 12.5px/1.4 monospace}
 
 </style>
 </head>
@@ -1773,8 +1774,9 @@ const stOf=(c,k)=>+c?.st?.[k]||0;
 const skOver=id=>ruleData().sk?.[id]||{};
 const skBase=(c,id)=>{const s=SK[id]||(c?.custom||[]).find(x=>x.id===id);if(!s)return 0;const o=skOver(id).b,b=o!=null&&o!==''?o:s.b??s.base;return typeof b==='string'?calcI(b,c):(+b||0)};
 function skVal(c,id){const x=c?.sk?.[id]||{};if(x.v!=null&&x.v!=='')return+x.v||0;const v=calcI(R('fSkill'),c,{BASE:skBase(c,id),JOB:+x.j||0,HOBBY:+x.h||0,GROW:+x.g||0}),cap=+R('skCap')||0;return cap&&id!=='myth'?Math.min(cap,v):v}
-const skName=(c,id)=>skOver(id).n||SK[id]?.n||(c?.custom||[]).find(x=>x.id===id)?.n||id;
-const allSkills=c=>[...SKILLS.map(([id,n])=>({id,n:skOver(id).n||n})),...(c?.custom||[]).map(x=>({id:x.id,n:x.n,cus:1}))];
+const skSub=(c,id)=>c?.sk?.[id]?.sub?`(${c.sk[id].sub})`:'';
+const skName=(c,id)=>(skOver(id).n||SK[id]?.n||(c?.custom||[]).find(x=>x.id===id)?.n||id)+skSub(c,id);
+const allSkills=c=>[...SKILLS.map(([id,n])=>({id,n:(skOver(id).n||n)+skSub(c,id)})),...(c?.custom||[]).map(x=>({id:x.id,n:x.n,cus:1}))];
 const hpAuto=c=>calcI(R('fHp'),c),mpAuto=c=>calcI(R('fMp'),c),sanAuto=c=>calcI(R('fSanMax'),c),sanStart=c=>calcI(R('fSan'),c);
 const hpMax=c=>ovOf(c,'hp')??hpAuto(c);
 const mpMax=c=>ovOf(c,'mp')??mpAuto(c);
@@ -2061,7 +2063,7 @@ const kindName=k=>(KINDS.find(x=>x[0]===k)||KINDS[0])[1];
 // 플레이어에게는 자기 시트와 다른 탐사자만 보인다. NPC·크리쳐 수치는 마스터만 본다
 const visChars=()=>chars().filter(c=>!NET.on||NET.gm||!c.foe||c.owner===ME);
 function roster(list,c,kd){const gm=!NET.on||NET.gm,count=k=>chars().filter(x=>kindOf(x)===k).length;
- return`<div class="sh-rost">${gm?`<div class="seg">${KINDS.map(([k,n])=>`<button class="${k===kd?'on':''}" data-a="shKind" data-v="${k}">${n} ${count(k)}</button>`).join('')}</div>`:''}<select data-c="shPick" aria-label="${esc(kindName(kd))} 고르기">${list.map(x=>`<option value="${x.id}" ${x.id===c?.id?'selected':''}>${esc(x.info.name||'이름 없음')}</option>`).join('')||'<option value="">없음</option>'}</select>${gm||kd==='pc'?`<button class="btn sm" data-a="charAdd" data-v="${kd}">새 ${esc(kindName(kd))}</button>`:''}</div>`}
+ return`<div class="sh-rost">${gm?`<div class="seg">${KINDS.map(([k,n])=>`<button class="${k===kd?'on':''}" data-a="shKind" data-v="${k}">${n} ${count(k)}</button>`).join('')}</div>`:''}<select data-c="shPick" aria-label="${esc(kindName(kd))} 고르기">${list.map(x=>`<option value="${x.id}" ${x.id===c?.id?'selected':''}>${esc(x.info.name||'이름 없음')}</option>`).join('')||'<option value="">없음</option>'}</select>${gm||kd==='pc'?`<button class="btn sm" data-a="charAdd" data-v="${kd}">새 ${esc(kindName(kd))}</button>`:''}${kd==='pc'?'<button class="btn sm" data-a="ccfOpen">코코포리아에서 불러오기</button>':''}</div>`}
 function skFilter(q){$$('.skl .kr').forEach(r=>{r.hidden=!skMatch(r.dataset.id,r.dataset.n,q)})}
 document.addEventListener('input',ev=>{if(ev.target.id==='skQ')skFilter(ev.target.value)});
 
@@ -3436,6 +3438,25 @@ Object.assign(A,{
  gdZoom(e){GD.z=Math.min(2.4,Math.max(.5,GD.z+(+e.dataset.v)));JB_SIG={};paintBattle()},
  gdHide(){const id=$('#jbNpcSel')?.value,c=CH(id);if(!c)return toast('NPC를 먼저 골라 주세요',1);gmSet(`gridH/${uid()}`,{tpl:id,name:c.info?.name||'적',gx:Math.floor((+gridCfg().cols||20)/2),gy:2});toast('플레이어에게 보이지 않게 배치했어요');JB_SIG={};setTimeout(paintBattle,50)},
  gdReveal(e){const k=e.dataset.v,h=gmGet().gridH?.[k],c=CH(h?.tpl);if(!c)return;const id=uid();Store.set(`${BTP}/units/${id}`,{side:c.ally?'pc':'foe',tpl:h.tpl,pub:unitPub(c),name:h.name,hp:curOf(c,'hp'),resp:0,gx:h.gx,gy:h.gy});const B=BT();if(B.round){const O=vals3(B.order||[]);Store.set(`${BTP}/order`,[...O,id],true)}gmSet(`gridH/${k}`,null);btLog(`${h.name} 등장!`);JB_SIG={};setTimeout(paintBattle,50)}
+});
+
+/* ---------- 코코포리아 말 데이터로 시트 만들기 ---------- */
+const CCF_ST={근력:'STR',건강:'CON',크기:'SIZ',체격:'SIZ',민첩:'DEX',외모:'APP',지능:'INT',정신:'POW',정신력:'POW',교육:'EDU',STR:'STR',CON:'CON',SIZ:'SIZ',DEX:'DEX',APP:'APP',INT:'INT',POW:'POW',EDU:'EDU'};
+const CCF_ALIAS={모국어:'own','언어(모국어)':'own',외국어:'lang','언어(외국어)':'lang',도서관:'lib',도서관이용:'lib',자료조사:'lib',컴퓨터:'comp',컴퓨터사용:'comp','사격(샷건)':'rifle','사격(산탄총)':'rifle','사격(라이플)':'rifle','사격(소총)':'rifle','사격(라이플/샷건)':'rifle',권총:'hgun',격투:'brawl',근접전:'brawl',크툴루신화:'myth',신용:'credit',신용등급:'credit'};
+const ccfKey=s=>String(s||'').replace(/[\s·]/g,'');
+function ccfParse(raw){let o;const t=String(raw||'').trim();try{o=JSON.parse(t)}catch{try{o=JSON.parse(t.replace(/[\r\n]+/g,'\\n'))}catch{return{err:'JSON으로 읽을 수 없어요. 코코포리아용 칸 전체를 복사했는지 확인해 주세요.'}}}const d=o?.data||o;if(!d||typeof d!=='object'||(!d.name&&!d.commands&&!d.status))return{err:'코코포리아 말 데이터가 아니에요.'};
+ const vars={};for(const x of[...(Array.isArray(d.status)?d.status:[]),...(Array.isArray(d.params)?d.params:[])])if(x?.label)vars[String(x.label).trim()]=x.value;
+ const names=new Map(SKILLS.map(([id,n])=>[ccfKey(n),id]));const r={name:String(d.name||'').slice(0,60),st:{},sk:{},custom:[],hp:null,mp:null,san:null,luck:null,db:null,build:null,bad:[],img:/^https:\/\//i.test(d.iconUrl||'')?d.iconUrl:'',faces:(Array.isArray(d.faces)?d.faces:[]).filter(f=>/^https:\/\//i.test(f?.iconUrl||'')).slice(0,24).map(f=>({img:f.iconUrl,n:String(f.label||'').slice(0,24)})),memo:String(d.memo||'').slice(0,4000)};
+ const stat=(lb)=>{const n=String(lb).trim();return n};for(const x of Array.isArray(d.status)?d.status:[]){const n=ccfKey(x?.label).toUpperCase(),v=+x?.value,m=+x?.max;const put=k=>{r[k]={v:Number.isFinite(v)?v:null,m:Number.isFinite(m)&&m>0?m:null}};if(['체력','HP','내구력'].includes(n))put('hp');else if(['마력','MP'].includes(n))put('mp');else if(['이성','SAN','이성치'].includes(n))put('san');else if(['행운','LUCK'].includes(n))r.luck=v}
+ for(const x of Array.isArray(d.params)?d.params:[]){const n=ccfKey(x?.label),u=n.toUpperCase(),v=x?.value;if(CCF_ST[n]||CCF_ST[u])r.st[CCF_ST[n]||CCF_ST[u]]=+v||0;else if(['피해보너스','DB'].includes(u))r.db=String(v??'').trim();else if(['체구','BUILD'].includes(u))r.build=String(v??'').trim()}
+ for(const line of String(d.commands||'').split(/\r?\n/)){const l=line.trim();if(!l)continue;const m=l.match(/^(?:CCB?|CC\(\d*\)|CBRB?|1[dD]100)\s*<=\s*(\{[^}]*\}|\d+)\s*[:：]?\s*(.*)$/i);if(!m)continue;let v=m[1],n=m[2].replace(/[【】\[\]「」]/g,'').trim();if(v.startsWith('{')){const key=v.slice(1,-1).trim();if(!n)n=key;v=vars[key]}v=+v;if(!Number.isFinite(v))continue;if(!n)continue;const k=ccfKey(n),base=k.replace(/\(.*\)$/,''),sub=(k.match(/\((.*)\)$/)||[])[1]||'',u=k.toUpperCase();if(/^(이성|SAN)/i.test(k)||['아이디어','지식','행운'].includes(k)){if(k==='행운'&&r.luck==null)r.luck=v;continue}if(CCF_ST[k]||CCF_ST[u]){r.st[CCF_ST[k]||CCF_ST[u]]=v;continue}const id=CCF_ALIAS[k]||names.get(k)||(names.has(base)?names.get(base):CCF_ALIAS[base]);if(id){if(v>0||!(id in r.sk))r.sk[id]={v,sub:names.get(k)||CCF_ALIAS[k]?'':sub};continue}if(v>0)r.custom.push({n:n.slice(0,30),v})}
+ return r}
+function ccfApply(r,c){for(const[k,v]of Object.entries(r.st))c.st[k]=v;if(r.name)c.info.name=r.name;for(const[id,x]of Object.entries(r.sk)){const b=skBase(c,id);c.sk[id]={...(c.sk[id]||{}),j:x.v-b,h:0,g:0,...(x.sub?{sub:x.sub}:{})};if(x.v<b)c.sk[id]={v:x.v,...(x.sub?{sub:x.sub}:{})}}c.custom=(c.custom||[]).filter(x=>!r.custom.some(y=>y.n===x.n));for(const x of r.custom){const id='cc'+uid();c.custom.push({id,n:x.n});c.sk[id]={j:x.v,h:0,g:0}}const stat=(k,o)=>{if(!o)return;if(o.m!=null)c.over[k]=o.m;if(o.v!=null)c.cur[k]=o.v};stat('hp',r.hp);stat('mp',r.mp);stat('san',r.san);if(r.luck!=null)c.cur.luck=r.luck;const a=dbAuto(c);if(r.db&&r.db!==String(a.db))c.over.db=r.db;if(r.build!=null&&r.build!==''&&+r.build!==+a.build)c.over.build=r.build;if(r.img)c.portrait=r.img;if(r.faces.length)c.stands=r.faces;if(r.memo)c.story={...c.story,ccf:r.memo};return c}
+function ccfModal(){const u=UI.ccf,r=u.r;return`<p class="small muted" style="margin-top:0">자동화 시트의 코코포리아용 칸을 복사해 붙여 넣으세요. 내 컴퓨터 안에서만 읽습니다.</p><label class="f"><span>코코포리아 말 데이터</span><textarea id="ccfT" rows="6" spellcheck="false" aria-label="코코포리아 말 데이터">${esc(u.t||'')}</textarea></label>${r?.err?`<p class="small over">${esc(r.err)}</p>`:''}${r&&!r.err?`<div class="ccf-p"><b>${esc(r.name||'이름 없음')}</b><p>체력 ${r.hp?.v??'-'}/${r.hp?.m??'-'} · 마력 ${r.mp?.v??'-'}/${r.mp?.m??'-'} · 이성 ${r.san?.v??'-'}/${r.san?.m??'-'} · 행운 ${r.luck??'-'}</p><p>특성치 ${Object.keys(r.st).length}개 · 기능 ${Object.keys(r.sk).length}개${r.custom.length?` · 추가 기능 ${r.custom.length}개 (${esc(r.custom.map(x=>x.n).join(', '))})`:''}</p>${Object.keys(r.st).length<8?`<p class="small over">특성치가 ${8-Object.keys(r.st).length}개 비어 있어요. 시트에서 직접 넣어 주세요.</p>`:''}<p class="small muted">무기, 나이, 직업은 데이터에 없으면 시트에서 직접 입력해 주세요.</p></div>`:''}<div class="mfoot"><button class="btn" data-a="closeModal">닫기</button><button class="btn" data-a="ccfRead">읽어 보기</button>${r&&!r.err?`${u.cur?'<button class="btn" data-a="ccfGo" data-v="cur">지금 시트에 덮어쓰기</button>':''}<button class="btn pri" data-a="ccfGo" data-v="new">새 시트로 만들기</button>`:''}</div>`}
+Object.assign(A,{
+ ccfOpen(){UI.ccf={t:'',r:null,cur:UI.charId&&!CH(UI.charId)?.foe?UI.charId:''};openModal('코코포리아에서 불러오기',ccfModal)},
+ ccfRead(){const t=$('#ccfT')?.value||'';UI.ccf.t=t;UI.ccf.r=ccfParse(t);drawModal()},
+ ccfGo(e){const r=UI.ccf.r;if(!r||r.err)return;if(e.dataset.v==='cur'){const o=CH(UI.ccf.cur);if(!o)return;if(!confirm(`${o.info?.name||'이 시트'}의 능력치와 기능을 덮어쓸까요?`))return;const c=ccfApply(r,fixChar(JSON.parse(JSON.stringify(o))));Store.set('chars/'+c.id,c);UI.charId=c.id}else{const c=ccfApply(r,blankChar('pc'));Store.set('chars/'+c.id,c);UI.charId=c.id}closeModal();UI.shKind='pc';renderSheet?.();toast('시트를 만들었어요. 무기와 직업을 확인해 주세요')}
 });
 
 /* ---------- 밀담: 참여자만 듣는 채널 (rooms/<방>/mil/<sid>) ---------- */
