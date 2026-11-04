@@ -1493,7 +1493,7 @@ body.mil-in #modal{z-index:8100!important}body.mil-in #dock{z-index:8050!importa
 .ex-p{display:flex;flex-wrap:wrap;gap:5px;flex-basis:100%}.ex-p button{width:68px;padding:2px;border:1px solid var(--rule);background:var(--desk2);color:var(--paper);cursor:pointer}.ex-p button.on{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}.ex-p img{display:block;width:100%;height:74px;object-fit:cover;object-position:50% 6%}.ex-p span{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
 
 /* 그리드 전투 */
-.jb.grid{grid-template-columns:286px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}.jb.grid .jb-top{grid-column:1/-1}.jb.grid .jb-stage{grid-column:2;grid-row:2;padding:4px 10px 10px;display:block;position:relative;min-height:0}.jb.grid .jb-low{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;align-items:stretch;padding:4px 0 10px 10px;min-height:0;overflow:auto}.jb.grid .jb-cmd{width:auto}.jb.grid .jb-party{display:grid;gap:4px;grid-template-columns:1fr}.jb.grid .jb-pc{width:auto;min-width:0;padding:3px 6px}.jb.grid .jb-pc img{display:none}
+.jb.grid{grid-template-columns:286px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}.jb.grid .jb-top{grid-column:1/-1}.jb.grid .jb-stage{grid-column:2;grid-row:2;padding:4px 10px 10px;display:block;position:relative;min-height:0}.jb.grid .jb-low{grid-column:1;grid-row:2;display:flex;flex-direction:column;gap:6px;align-items:stretch;padding:4px 0 10px 10px;min-height:0;overflow:auto}.jb.grid .jb-cmd{width:auto}
 .jb.grid .jb-say,.jb.grid .jb-lines{z-index:31}
 .gd-w{height:100%;overflow:auto;background:rgba(3,9,10,.55);border:1px solid var(--rule)}.gd-m{position:relative;background-color:#10201e;background-image:linear-gradient(rgba(255,255,255,.1) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.1) 1px,transparent 1px);background-repeat:repeat,repeat,no-repeat}
 .gd-t{position:absolute;padding:2px;border:0;background:none;cursor:pointer;touch-action:none;transition:left .22s,top .22s}.gd-t.drag{z-index:9;transition:none;opacity:.85}.gd-t img,.gd-n{display:grid;place-items:center;width:100%;height:100%;object-fit:cover;object-position:50% 10%;border-radius:50%;border:2px solid #6f9b8f;background:#17302c;color:var(--paper);font:700 16px var(--fb)}.gd-t.foe img,.gd-t.foe .gd-n{border-color:#b5564a;background:#3a1a17}.gd-t.cur img,.gd-t.cur .gd-n{border-color:var(--brass-l);box-shadow:0 0 0 2px var(--brass-l),0 0 12px var(--brass-l)}.gd-t.tg img,.gd-t.tg .gd-n{box-shadow:0 0 0 3px #ff6a55}.gd-t.out{filter:grayscale(1) brightness(.5)}.gd-t.hid{opacity:.55;outline:1px dashed #d8bd7f;cursor:default}
@@ -1504,6 +1504,12 @@ body.mil-in #modal{z-index:8100!important}body.mil-in #dock{z-index:8050!importa
 
 .jb.grid .jb-say{left:10px;right:auto;bottom:10px;width:266px;min-width:0}.jb.grid .jb-lines{left:10px;right:auto;bottom:86px;width:266px;min-width:0}.jb.grid .jb-low{padding-bottom:150px}
 @media (max-width:980px){.jb.grid .jb-say{left:8px;right:8px;width:auto;bottom:4px}.jb.grid .jb-lines{left:8px;right:8px;width:auto;bottom:44px}.jb.grid .jb-low{padding-bottom:84px}}
+
+/* 그리드: 탐사자 카드는 왼쪽 칸에 세로로 작게 */
+.jb.grid .jb-party{grid-auto-flow:row;grid-auto-columns:auto;grid-template-columns:minmax(0,1fr);justify-content:stretch;align-items:start;gap:4px;padding:0}
+.jb.grid .jb-pc{display:grid;grid-template-columns:40px minmax(0,1fr);gap:7px;width:100%;min-width:0;min-height:0;height:auto;padding:4px 6px;transform:none;margin:0}
+.jb.grid .jb-pc .jb-face{width:40px;height:52px;min-height:0;font-size:15px}.jb.grid .jb-pc .jb-st{min-width:0;gap:0;font-size:12px}.jb.grid .jb-pc .jb-st>b{font-size:13px}.jb.grid .jb-pc .jb-g{gap:4px;font-size:11.5px;line-height:1.2}.jb.grid .jb-pc .jb-g small{font-size:10.5px}.jb.grid .jb-pc .jb-g b{font-size:12.5px}.jb.grid .jb-pc .jb-tags{font-size:10.5px}
+.jb.grid .jb-low{min-height:0;grid-template-columns:none}
 
 </style>
 </head>
