@@ -3495,7 +3495,11 @@ let REN=false;   // 그리는 도중 입력칸이 사라지며 저장이 일어�
 // 다시 그려도 입력 중인 칸의 글자와 커서를 지킨다 (다른 사람의 변경이 도착해도 입력이 끊기지 않게)
 function fieldSnap(root){const a=document.activeElement;if(!root||!a||!root.contains(a)||!a.matches('input:not([type=checkbox]):not([type=radio]),textarea,select'))return null;const sel=a.tagName.toLowerCase()+(a.id?`#${CSS.escape(a.id)}`:'')+['data-c','data-k','data-f','data-p','data-b','data-u','data-v'].filter(n=>a.hasAttribute(n)).map(n=>`[${n}="${CSS.escape(a.getAttribute(n))}"]`).join('');let s=null,e=null;try{s=a.selectionStart;e=a.selectionEnd}catch{}return{sel,v:a.value,s,e,a,root}}
 function fieldBack(f){if(!f)return;const el=f.root.querySelector(f.sel);if(!el||el===f.a)return;if(el.value!==f.v){el.value=f.v;if(el.tagName!=='SELECT')el.addEventListener('blur',()=>{if(el.value!==el.defaultValue)el.dispatchEvent(new Event('change',{bubbles:true}))},{once:true})}el.focus({preventScroll:true});try{if(f.s!=null)el.setSelectionRange(f.s,f.e)}catch{}}
-function renSafe(fn,flag){if(PRESS.down||REN){PRESS[flag]=true;return}REN=true;const f=fieldSnap($(flag==='m'?'#modal':flag==='r'?'#scnRun':flag==='w'?'#wsp':'#sheet'));try{fn()}finally{REN=false}fieldBack(f);if(PRESS.m||PRESS.s||PRESS.r||PRESS.w)flushRen()}
+// 한글 조합 중에 입력칸을 다시 그리면 글자가 풀어진다. 조합이 끝나고 잠시 뒤에 그린다
+const COMP={on:false,until:0,t:0};
+document.addEventListener('compositionstart',()=>{COMP.on=true;clearTimeout(COMP.t)},true);
+document.addEventListener('compositionend',()=>{COMP.on=false;COMP.until=Date.now()+380;clearTimeout(COMP.t);COMP.t=setTimeout(()=>{if(!COMP.on&&(PRESS.m||PRESS.s||PRESS.r||PRESS.w))flushRen()},420)},true);
+function renSafe(fn,flag){if(PRESS.down||REN||COMP.on||Date.now()<COMP.until){PRESS[flag]=true;return}REN=true;const f=fieldSnap($(flag==='m'?'#modal':flag==='r'?'#scnRun':flag==='w'?'#wsp':'#sheet'));try{fn()}finally{REN=false}fieldBack(f);if(PRESS.m||PRESS.s||PRESS.r||PRESS.w)flushRen()}
 function flushRen(){const m=PRESS.m,s=PRESS.s,r=PRESS.r,w=PRESS.w;PRESS.m=PRESS.s=PRESS.r=PRESS.w=false;if(w)renSafe(_wspHold,'w');if(r)renSafe(_runHold,'r');if(s)renSafe(_sheetHold,'s');if(m)renSafe(_drawHold,'m')}
 drawModal=function(){renSafe(_drawHold,'m')};
 renderSheet=function(){renSafe(_sheetHold,'s')};
