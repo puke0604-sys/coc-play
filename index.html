@@ -1525,6 +1525,19 @@ body.mil-in #modal{z-index:8100!important}body.mil-in #dock{z-index:8050!importa
 #tkCam.cam-drift{transition:none;animation:camDrift2 26s ease-in-out infinite alternate}
 @keyframes camDrift2{0%{transform:translate(50%,50%) rotate(0deg) translate(-50%,-50%) translate(-3%,-3%) scale(1.06)}50%{transform:translate(50%,50%) rotate(0deg) translate(-50%,-50%) translate(-7.5%,-5.5%) scale(1.12)}100%{transform:translate(50%,50%) rotate(0deg) translate(-50%,-50%) translate(-2.5%,-3%) scale(1.08)}}
 
+/* 추가 동작 10종 */
+.fig.a-bow img:first-child{transform-origin:50% 100%;animation:abow 1.15s ease-in-out}@keyframes abow{35%,60%{transform:translateY(3%) rotate(0) scaleY(.965)}}
+.fig.a-tiltq img:first-child{transform-origin:50% 100%;animation:atilt 1.15s ease-in-out}@keyframes atilt{30%,65%{transform:rotate(3.2deg)}}
+.fig.a-laugh img:first-child{transform-origin:50% 100%;animation:alaugh .34s ease-in-out 3}@keyframes alaugh{50%{transform:translateY(-1.5%) scaleY(1.012)}}
+.fig.a-look img:first-child{animation:alook 1.45s ease-in-out}@keyframes alook{20%,38%{transform:translateX(-2.6%)}62%,80%{transform:translateX(2.6%)}}
+.fig.a-back img:first-child{transform-origin:50% 100%;animation:aback 1.15s cubic-bezier(.3,.7,.3,1)}@keyframes aback{45%,70%{transform:translateY(-1%) scale(.91)}}
+.fig.a-cower img:first-child{transform-origin:50% 100%;animation:acower 1.45s ease-in-out}@keyframes acower{20%{transform:translateY(3%) scale(.93,.9)}30%{transform:translate(-.4%,3%) scale(.93,.9)}40%{transform:translate(.4%,3%) scale(.93,.9)}50%{transform:translate(-.4%,3%) scale(.93,.9)}60%{transform:translate(.4%,3%) scale(.93,.9)}75%{transform:translateY(3%) scale(.93,.9)}}
+.fig.a-pant img:first-child{transform-origin:50% 100%;animation:apant .55s ease-in-out 4}@keyframes apant{50%{transform:translateY(-.5%) scale(1.012,1.016)}}
+.fig.a-stagger img:first-child{transform-origin:50% 100%;animation:astag 1.4s ease-in-out}@keyframes astag{20%{transform:translateX(-2.4%) rotate(-3deg)}45%{transform:translateX(2.2%) rotate(2.6deg)}70%{transform:translateX(-1.2%) rotate(-1.4deg)}}
+.fig.a-sway img:first-child{transform-origin:50% 100%;animation:asway 1.75s ease-in-out}@keyframes asway{35%{transform:translateY(5%) rotate(-5deg);filter:brightness(.75)}65%{transform:translateY(3%) rotate(-2deg);filter:brightness(.85)}}
+.fig.a-flicker img:first-child{animation:aflick 1.45s steps(1,end)}@keyframes aflick{0%,8%,22%,31%,48%,70%,84%{opacity:1}5%,16%,27%,42%,60%,78%{opacity:.08;filter:brightness(.4) contrast(1.4)}}
+.fx-shake-0 .fig.a-stagger img:first-child,.fx-shake-0 .fig.a-cower img:first-child,.fx-shake-0 .fig.a-flicker img:first-child{animation:none}
+
 </style>
 </head>
 <body>
@@ -3814,7 +3827,7 @@ function netBlocked(n,el,isC){if(!NET.on||NET.gm)return false;
    계속 남는 상태(암전·시네마 바·색조·BGM·스탠딩 거리)는 play/stagefx에도 적어 새로 들어온 사람도 같은 화면을 본다 */
 const TINTS=[['','없음'],['sepia','회상'],['gray','흑백'],['red','경고'],['blue','냉기'],['dream','몽환']];
 const TR_MODES=[['fade','페이드'],['black','암전'],['white','섬광'],['cut','즉시']];
-const FIG_ACTS=[['jump','놀람'],['tremble','떨림'],['nod','끄덕'],['no','고개 젓기'],['flinch','움찔'],['lunge','들이밀기'],['sigh','한숨'],['near','다가서기'],['far','물러서기'],['down','쓰러짐'],['flip','돌아서기'],['mid','제자리']];
+const FIG_ACTS=[['jump','놀람'],['tremble','떨림'],['nod','끄덕'],['no','고개 젓기'],['flinch','움찔'],['lunge','들이밀기'],['sigh','한숨'],['bow','인사'],['tiltq','갸웃'],['laugh','웃음'],['look','두리번'],['back','뒷걸음'],['cower','움츠림'],['pant','거친 숨'],['stagger','비틀거림'],['sway','휘청'],['flicker','깜빡임'],['near','다가서기'],['far','물러서기'],['down','쓰러짐'],['flip','돌아서기'],['mid','제자리']];
 const POS_ACTS=['near','far','mid','down'];
 const STORY_SFX=[['boom','쾅'],['hit','타격'],['slash','베기'],['whoosh','휘익'],['knock','노크'],['door','문 삐걱'],['step','발소리'],['heart','심장박동'],['glass','유리 깨짐'],['bell','종소리'],['static','잡음'],['clang','쇳소리']];
 const BGM_BUILTIN=[['calm','고요한 밤'],['tense','긴장'],['uneasy','불안'],['battle','긴박'],['sad','애수'],['mystery','수수께끼']];
@@ -3852,7 +3865,7 @@ function dirRun(m){const st=DLG.st=DLG.st||{},stage=$('#tkStage'),q=s=>$('#tkFx 
   case'act':{const f=$$('#tkFigs .fig').find(x=>x.dataset.k===m.sp&&!x.classList.contains('leave'));
    if(POS_ACTS.includes(m.act)){st.pos={...(st.pos||{})};st.pos[m.sp]=m.act==='mid'?null:m.act;paintFigs();if(m.act==='down')STORY.play('boom');return m.act==='down'?700:500}
    if(m.act==='flip'){st.flip={...(st.flip||{})};st.flip[m.sp]=st.flip[m.sp]?null:1;paintFigs();return 400}
-   if(f){f.classList.remove('a-'+m.act);void f.offsetWidth;f.classList.add('a-'+m.act);setTimeout(()=>f.classList.remove('a-'+m.act),1000)}if(m.act==='jump'||m.act==='lunge')STORY.play('whoosh');return{tremble:500,sigh:1300,no:600}[m.act]||450}
+   if(f){[...f.classList].filter(x=>x.startsWith('a-')).forEach(x=>f.classList.remove(x));void f.offsetWidth;f.classList.add('a-'+m.act);setTimeout(()=>f.classList.remove('a-'+m.act),({pant:2300,stagger:1500,sway:1800,flicker:1500,look:1500,sigh:1400,cower:1500,laugh:1100,bow:1200,back:1200,tiltq:1200})[m.act]||1000)}if(m.act==='jump'||m.act==='lunge')STORY.play('whoosh');return{tremble:500,sigh:1300,no:600,pant:1200,stagger:900,sway:900,flicker:800,look:900,cower:800,laugh:700,bow:700,back:600,tiltq:600}[m.act]||450}
   case'sfx':STORY.play(m.sfx,m.url);return 150;
   case'bgm':st.bgm=m.bgm||null;BGM.want(st.bgm);return 0;
   case'wait':return clamp(+m.ms||1000,200,8000);
