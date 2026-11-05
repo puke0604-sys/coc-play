@@ -3408,7 +3408,15 @@ Object.assign(A,{
 });
 
 /* 다른 화면에 있던 동안의 대사는 돌아왔을 때 다시 재생하지 않는다. 대사 기록에는 남는다 */
-const _tab0=A.tab;A.tab=function(e){const to=e.dataset.v,was=UI.tab;_tab0(e);if(to==='talk'&&was!=='talk'&&R('tabSkip')&&(DLG.pending.length||DLG.fxBusy)){clearTimeout(DLG.hold);clearTimeout(DLG.fxT);DLG.hold=null;DLG.fxBusy=false;dlgSeed();paintTalkStage()}};
+const _tab0=A.tab;A.tab=function(e){const to=e.dataset.v,was=UI.tab;_tab0(e);if(to==='talk'&&was!=='talk'&&R('tabSkip'))dlgCatchUp(false)};
+
+/* 창을 숨긴 동안의 일도 다시 쏟아내지 않는다. 기록에는 남고, 돌아오면 지금 상태만 보여 준다 */
+const HID={at:0};
+const hidSkip=()=>document.hidden&&R('tabSkip');
+function dlgCatchUp(toastOn){const n=DLG.pending.filter(m=>m.kind!=='fx'&&m.txt).length;if(!DLG.pending.length&&!DLG.fxBusy)return;clearTimeout(DLG.hold);clearTimeout(DLG.fxT);DLG.hold=null;DLG.fxBusy=false;dlgSeed();if(UI.tab==='talk')paintTalkStage();if(toastOn&&n)toast(`지나간 대사 ${n}줄은 대사 기록에서 볼 수 있어요`)}
+document.addEventListener('visibilitychange',()=>{if(document.hidden){HID.at=Date.now();return}if(!R('tabSkip')||!dockLogged())return;CUT.q.length=0;DOCK.popQ.length=0;$$('#rollNotes .rn').forEach(x=>x.remove());dlgCatchUp(true)});
+const _cutPump0=cutPump;cutPump=function(){if(hidSkip()){for(const e of cutList())CUT.seen.add(e.k);return}_cutPump0()};
+const _fxPump0=fxPump;fxPump=function(){if(hidSkip()){for(const x of vals(BT().log))FX_DONE.add(x.k);return}_fxPump0()};
 
 /* ---------- 그리드 전투: 판정과 순서는 공통이고, 화면과 위치만 바뀐다 ---------- */
 const GD={z:1,drag:null};
