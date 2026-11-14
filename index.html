@@ -5093,6 +5093,105 @@ document.fonts?.ready.then(()=>fitScan(document.body));
 // 셀렉트는 고른 항목 전체를 마우스로 볼 수 있게
 document.addEventListener('mouseover',e=>{const t=e.target;if(t.tagName==='SELECT'){const o=t.selectedOptions?.[0];if(o)t.title=o.text}else if(t.nodeType===1&&!t.title&&t.children.length===0&&t.scrollWidth>t.clientWidth+1&&getComputedStyle(t).overflowX!=='visible')t.title=t.textContent.trim()},true);
 </script>
+<style id="add-css">
+/* ───── 종이 극장 무대: 배경·인물·틀을 서로 다른 깊이에 세운다 ───── */
+.pth-on #tkStage{perspective:calc(var(--pu,1px)*1300);perspective-origin:50% 50%}
+.pth-on #tkCam{transform-style:preserve-3d;transform-origin:50% 50%!important;translate:calc(var(--mx,0)*var(--pu,1px)*-30) calc(var(--my,0)*var(--pu,1px)*-12)}
+.pth-on #tkCam.cam-drift{animation-name:pthDrift}
+@keyframes pthDrift{0%{transform:translate3d(-1%,.4%,calc(var(--pu,1px)*70))}50%{transform:translate3d(1%,-.6%,calc(var(--pu,1px)*150))}100%{transform:translate3d(1.4%,.5%,calc(var(--pu,1px)*100))}}
+.pth-on #tkStage:not(.st-inv):not(.st-guide):not(.pnl-edit) :is(#tkBg,.tk-old){translate:0 0 calc(var(--pu,1px)*-500);scale:1.58;-webkit-mask:none;mask:none}
+.pth-on #tkStage:not(.pnl-edit) #pnlBg{position:absolute;inset:0;translate:0 0 calc(var(--pu,1px)*-360);scale:1.277;transform-style:preserve-3d}
+.pth-on #tkStage:not(.pnl-edit) #pnlMid{position:absolute;inset:0;translate:0 0 calc(var(--pu,1px)*-40);scale:1.031}
+.pth-on #tkStage:not(.pnl-edit) #tkFigs{transform-style:preserve-3d;isolation:auto!important;translate:0 0 calc(var(--pu,1px)*-150);scale:1.115}
+.pth-on .fig{-webkit-mask:none;mask:none;transform-origin:50% 100%;transition:filter .35s,left .55s,opacity .4s,height .5s,width .5s,bottom .5s,translate .6s cubic-bezier(.3,.9,.3,1)}
+.pth-on .fig.on{translate:0 0 calc(var(--pu,1px)*95)}
+.pth-on .fig.fnear{translate:0 0 calc(var(--pu,1px)*150)}
+.pth-on .fig.ffar{translate:0 0 calc(var(--pu,1px)*-170)}
+.pth-on.pth-edge .fig>img:first-child{filter:drop-shadow(calc(var(--pu,1px)*2.4) 0 0 #f3ead4) drop-shadow(calc(var(--pu,1px)*-2.4) 0 0 #f3ead4) drop-shadow(0 calc(var(--pu,1px)*-2.4) 0 #f3ead4) drop-shadow(0 calc(var(--pu,1px)*2.4) 0 #f3ead4) drop-shadow(calc(var(--pu,1px)*12) calc(var(--pu,1px)*5) calc(var(--pu,1px)*9) rgba(0,0,0,.6))}
+.pth-on .fig.enter{animation:pthIn .95s cubic-bezier(.25,.9,.3,1)}
+@keyframes pthIn{0%{translate:calc(var(--pd,1)*70vw) 0 0;rotate:calc(var(--pd,1)*7deg);opacity:1}55%{translate:0 0 0;rotate:calc(var(--pd,1)*-4deg)}75%{rotate:calc(var(--pd,1)*2deg)}100%{rotate:0deg}}
+.pth-on .fig.leave{opacity:1;translate:calc(var(--pd,1)*70vw) 0 0;rotate:calc(var(--pd,1)*6deg);transition:translate .7s cubic-bezier(.5,0,.8,.4),rotate .7s}
+.pth-l{position:absolute;pointer-events:none}
+#ptPros{left:-31.25%;top:-33.334%;width:162.5%;height:166.667%;translate:0 0 calc(var(--pu,1px)*140);scale:.8923;background:var(--pt-frame) center/100% 100% no-repeat;filter:drop-shadow(0 calc(var(--pu,1px)*14) calc(var(--pu,1px)*26) rgba(0,0,0,.75))}
+#ptLight{inset:-40%;translate:0 0 calc(var(--pu,1px)*70);opacity:0;transition:opacity .8s,background 1.2s;
+  background:radial-gradient(ellipse 30% 46% at var(--sx,50%) 58%,transparent 0,rgba(16,8,3,.62) 72%),linear-gradient(rgba(255,180,90,.07),rgba(255,180,90,.07))}
+.pth-light #ptLight{opacity:1}
+.pth-curt{top:-30%;width:52%;height:140%;translate:var(--cx,0) 0 calc(var(--pu,1px)*104);scale:.926;transition:translate 2s cubic-bezier(.6,0,.3,1);
+  background:repeating-linear-gradient(90deg,#5e0f16 0 1.4%,#8f1c25 1.4% 3%,#4a0b11 3% 4.6%);box-shadow:inset 0 -40px 60px rgba(0,0,0,.5)}
+#ptCurtL{left:-2%}#ptCurtR{left:50%}
+#ptCurtL.open{--cx:-90%}#ptCurtR.open{--cx:90%}
+.pth-foot{position:absolute;left:5%;right:5%;bottom:0}
+body:not(.pth-on) .pth-l{display:none}
+.fx-cam-0.pth-on #tkCam{translate:none}
+
+</style>
+<script id="add-js">
+'use strict';
+/* ───── 종이 극장 무대 (1단계: 뼈대) ─────
+   켜면 무대가 실제 깊이를 가진다. 배경은 뒷판, 인물은 종이 인형, 맨 앞에 무대 틀과 막.
+   기존 카메라 명령은 같은 구도를 깊이 이동으로 바꿔 쓰므로, 층마다 다르게 밀린다. */
+RULES.splice(Math.max(0,RULES.findIndex(r=>r[3]==='stage')),0,
+ ['ptOn',false,'bool','stage','종이 극장 무대','배경·인물·무대 틀을 서로 다른 깊이에 세운다'],
+ ['ptEdge',true,'bool','stage','종이 극장: 인물 종이 테두리',''],
+ ['ptLight',true,'bool','stage','종이 극장: 말하는 사람 조명',''],
+ ['ptCurt',true,'bool','stage','종이 극장: 무대에 들어올 때 막 열기',''],
+ ['ptPar',true,'bool','stage','종이 극장: 마우스로 깊이 보기','각자 화면에서만 움직인다']);
+for(const r of RULES)if(r[0].startsWith('pt')&&!(r[0] in RD))RD[r[0]]=r[1];
+const PT={P:1300,mx:0,my:0,tx:0,ty:0,raf:0,opened:false};
+const ptOn=()=>!!R('ptOn');
+const PT_FRAME="url(\"data:image/svg+xml,"+encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2600 1500" preserveAspectRatio="none"><defs><linearGradient id="pp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e2d2a8"/><stop offset="1" stop-color="#bda77a"/></linearGradient><radialGradient id="fl"><stop offset="0" stop-color="#fff2c0"/><stop offset=".4" stop-color="#ffc45a" stop-opacity=".7"/><stop offset="1" stop-color="#ffc45a" stop-opacity="0"/></radialGradient></defs>
+<path d="M380 120L1300 10L2220 120Z" fill="#cdb98a" stroke="#7a5f2c" stroke-width="6"/>
+<path fill-rule="evenodd" fill="url(#pp)" d="M200 110H2400V1260H200Z M580 1110V450Q580 363 680 363H1920Q2020 363 2020 450V1110Z"/>
+<path d="M566 1110V450Q566 349 680 349H1920Q2034 349 2034 450V1110" fill="none" stroke="#7a5f2c" stroke-width="5"/>
+<path d="M552 1110V450Q552 335 680 335H1920Q2048 335 2048 450V1110" fill="none" stroke="#a8262d" stroke-width="3"/>
+${[330,380,430,480,2120,2170,2220,2270].map(x=>`<rect x="${x-11}" y="300" width="22" height="820" fill="#a89164"/>`).join('')}
+<rect x="300" y="270" width="210" height="32" fill="#8f7a4e"/><rect x="2090" y="270" width="210" height="32" fill="#8f7a4e"/>
+<ellipse cx="1300" cy="240" rx="250" ry="58" fill="#7a1f24" stroke="#c9a24b" stroke-width="8"/>
+<rect x="200" y="1110" width="2200" height="150" fill="#4a2a1c"/><rect x="200" y="1110" width="2200" height="10" fill="#c9a24b"/>
+${Array.from({length:13},(_,i)=>`<circle cx="${640+i*110}" cy="1136" r="40" fill="url(#fl)"/><path d="M${620+i*110} 1154A20 20 0 0 1 ${660+i*110} 1154Z" fill="#2a160e"/>`).join('')}</svg>`)+"\")";
+
+// 같은 구도(z=0 면에서 s배, tx·ty 이동)를 깊이 이동으로 바꾼다
+function ptCamTf(r,tx,ty,s){const z=PT.P*(1-1/s),X=(tx-50*(1-s))/s,Y=(ty-50*(1-s))/s;return`rotate(${r}deg) translate3d(${X.toFixed(3)}%,${Y.toFixed(3)}%,calc(var(--pu,1px)*${z.toFixed(1)}))`}
+const _camApplyPt0=camApply;
+camApply=function(c,anim){
+ if(!ptOn())return _camApplyPt0(c,anim);
+ const el=$('#tkCam');if(!el)return;document.body.classList.toggle('fx-cam-0',+FXSET.cam===0);
+ const drift=c?.cam==='drift',fresh=!el._camOn||el._ptCam!==1;el._camOn=true;el._ptCam=1;
+ const[r,tx,ty,s]=drift?[0,0,0,1.04]:camPlan(c),tf=ptCamTf(r,tx,ty,s),key='pt:'+(drift?'drift':tf);
+ if(!fresh&&el.dataset.ck===key)return;el.dataset.ck=key;el.dataset.ct=drift?'':tf;clearTimeout(CAMV.t);
+ if(el.classList.contains('cam-drift')&&!drift){const m=getComputedStyle(el).transform;el.classList.remove('cam-drift');el.style.transition='none';el.style.transform=m;void el.offsetWidth}
+ el.style.transition=fresh?'none':'';if(fresh)void el.offsetWidth;el.style.transform=tf;if(fresh){void el.offsetWidth;el.style.transition=''}
+ if(drift)CAMV.t=setTimeout(()=>{el.classList.add('cam-drift');el.style.transform=''},fresh?0:900)};
+const _camPunchPt0=camPunch;
+camPunch=function(){if(!ptOn())return _camPunchPt0();const el=$('#tkCam');if(!el||+FXSET.cam===0)return;
+ try{el.animate([{scale:'1'},{scale:'1.07',offset:.35},{scale:'1'}],{duration:350,easing:'cubic-bezier(.2,1.6,.4,1)'})}catch{}};
+
+function ptLayers(){const cam=$('#tkCam');if(!cam)return;
+ const mk=(id,cls)=>{let e=$('#'+id);if(!e){e=document.createElement('div');e.id=id;e.className='pth-l '+(cls||'');e.setAttribute('aria-hidden','true');cam.append(e)}return e};
+ mk('ptLight');const l=mk('ptCurtL','pth-curt'),r=mk('ptCurtR','pth-curt');mk('ptPros').style.setProperty('--pt-frame',PT_FRAME);
+ const open=!R('ptCurt')||PT.opened;l.classList.toggle('open',open);r.classList.toggle('open',open);
+ if(!open){PT.opened=true;setTimeout(()=>{$('#ptCurtL')?.classList.add('open');$('#ptCurtR')?.classList.add('open')},500)}}
+function ptUnit(){const st=$('#tkStage');if(!st)return;st.style.setProperty('--pu',(st.clientWidth/1600).toFixed(4)+'px');
+ if(!st._ptRO){st._ptRO=new ResizeObserver(()=>st.style.setProperty('--pu',(st.clientWidth/1600).toFixed(4)+'px'));st._ptRO.observe(st);
+  st.addEventListener('pointermove',ev=>{const b=st.getBoundingClientRect();PT.tx=clamp((ev.clientX-b.left)/b.width*2-1,-1,1);PT.ty=clamp((ev.clientY-b.top)/b.height*2-1,-1,1)});
+  st.addEventListener('pointerleave',()=>{PT.tx=0;PT.ty=0})}}
+function ptLoop(t){PT.raf=0;const cam=$('#tkCam');if(!cam||!ptOn()||UI.tab!=='talk')return;
+ const par=R('ptPar')&&+FXSET.cam!==0,gx=par?PT.tx+Math.sin(t/2600)*.12:0,gy=par?PT.ty+Math.cos(t/3300)*.1:0;
+ PT.mx+=(gx-PT.mx)*.07;PT.my+=(gy-PT.my)*.07;cam.style.setProperty('--mx',PT.mx.toFixed(4));cam.style.setProperty('--my',PT.my.toFixed(4));
+ PT.raf=requestAnimationFrame(ptLoop)}
+function ptPaint(){const on=ptOn(),b=document.body,was=b.classList.contains('pth-on');
+ b.classList.toggle('pth-on',on);b.classList.toggle('pth-edge',on&&!!R('ptEdge'));b.classList.toggle('pth-light',on&&!!R('ptLight'));
+ if(on!==was){const el=$('#tkCam');if(el){el._camOn=false;el.dataset.ck='';if(!on){el.style.removeProperty('--mx');el.style.removeProperty('--my')}camApply(DLG.st?.cam,false)}if(!on)PT.opened=false}
+ if(!on)return;ptUnit();ptLayers();
+ // 들어오고 나가는 쪽, 조명 위치
+ const figs=$$('#tkFigs .fig');for(const f of figs){const x=parseFloat(f.style.getPropertyValue('--x'))||50;f.style.setProperty('--pd',x<50?-1:1)}
+ const cur=figs.find(f=>f.classList.contains('on')&&!f.classList.contains('leave')),L=$('#ptLight');
+ if(L){const x=cur?parseFloat(cur.style.getPropertyValue('--x'))||50:50;L.style.setProperty('--sx',((x+40)/1.8).toFixed(1)+'%')}
+ if(!PT.raf)PT.raf=requestAnimationFrame(ptLoop)}
+const _paintTalkStagePt0=paintTalkStage;paintTalkStage=function(){_paintTalkStagePt0();ptPaint()};
+const _paintFigsPt0=paintFigs;paintFigs=function(){_paintFigsPt0();if(ptOn()){for(const f of $$('#tkFigs .fig')){const x=parseFloat(f.style.getPropertyValue('--x'))||50;f.style.setProperty('--pd',x<50?-1:1)}}};
+
+</script>
 <style id="art-css">
 .art-g{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:6px 0 12px}
 .art-s{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border:1px solid #3a5356;background:#0a1011;cursor:pointer;color:inherit;font:inherit}
