@@ -5375,6 +5375,7 @@ body:not(.pth-on) .pth-l{display:none}
 .cz-sl.cur{outline:2px solid var(--amber,#c9a24b);outline-offset:2px}
 .cz-run{display:flex;gap:6px;align-items:center;padding:8px;margin:8px 0;border:1px solid var(--amber,#c9a24b);background:rgba(201,162,75,.08)}
 
+
 </style>
 <script id="add-js">
 'use strict';
@@ -5743,6 +5744,19 @@ repHtml=function(d){const h=_repHtmlCz0(d),st=d.init?.st||{};if(!(d.ev||[]).some
 
 // 마지막 줄까지 나온 장면은 각자 무대를 눌러 닫는다 (마스터가 닫으면 모두 닫힌다)
 document.addEventListener('click',ev=>{const c=(DLG.st||{}).cut;if(!c||!c.last||!c.cid||UI.czHide===c.cid)return;if(!ev.target.closest?.('#tkStage'))return;UI.czHide=c.cid;czApply()});
+
+/* ───── 음원 주소 정리 ─────
+   드롭박스 공유 링크는 그대로 붙여 넣어도 재생 가능한 주소(raw=1)로 바꾼다.
+   디스코드·구글 드라이브 링크는 받아 주되, 오래 못 쓰거나 재생이 불안정하다고 알린다. */
+function linkFix(u){u=String(u||'').trim();let x;try{x=new URL(u)}catch{return{u,note:''}}const h=x.hostname.toLowerCase();
+ if(/(^|\.)dropbox\.com$/.test(h)&&!/^dl\./.test(h)){x.searchParams.delete('dl');x.searchParams.set('raw','1');return{u:x.toString(),note:'드롭박스 링크를 재생할 수 있는 주소로 바꿨어요'}}
+ if(/(^|\.)(cdn\.discordapp\.com|media\.discordapp\.net)$/.test(h))return{u,note:'디스코드 링크는 약 하루 뒤 만료돼요. 다음 세션에는 링크를 다시 넣어야 해요',warn:1};
+ if(h==='drive.google.com'){const m=x.pathname.match(/\/file\/d\/([^/]+)/),id=m?m[1]:x.searchParams.get('id');if(id)return{u:`https://drive.google.com/uc?export=download&id=${id}`,note:'구글 드라이브 링크는 재생이 막힐 때가 있어요. 「듣기」로 확인해 주세요',warn:1}}
+ return{u,note:''}}
+const _openFormLk0=openForm;
+openForm=function(title,fields,onSave){if(title!=='음원 주소')return _openFormLk0(title,fields,onSave);
+ const F=fields.map(f=>f.k==='u'?{...f,label:'https:// 로 시작하는 주소 · 드롭박스 공유 링크는 그대로 붙여 넣으면 돼요'}:f);
+ return _openFormLk0(title,F,o=>{const r=linkFix(o.u);o.u=r.u;const ret=onSave(o);if(r.note&&/^https:\/\//i.test(r.u))setTimeout(()=>toast(r.note,r.warn?1:0),250);return ret})};
 
 </script>
 <style id="art-css">
