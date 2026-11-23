@@ -5382,6 +5382,18 @@ body:not(.pth-on) .pth-l{display:none}
 .gh-s{flex:none;font-size:11px;padding:1px 6px;border:1px solid currentColor}
 .gh-s.new{color:var(--amber,#c9a24b)}.gh-s.fill{color:#7fd3a8}.gh-s.have{color:#8d8676}
 
+.dk-hd{flex-wrap:wrap}
+.dk-hd .ct-b{position:relative}
+.dk-hd .ct-lock{font-style:normal;font-size:8px;color:var(--amber,#c9a24b);margin-right:4px;vertical-align:middle}
+.dk-hd .ct-add{padding:2px 8px;font-size:16px;color:var(--mute)}
+.dk-hd .ct-add:hover{color:var(--ink);border-color:#5b776d}
+.ct-note{margin:0 0 6px;font-size:12px;color:var(--amber,#c9a24b)}
+.ct-r{padding:8px;border:1px solid var(--rule,#3a4a46);margin-bottom:6px}
+.ct-r .row{gap:6px;align-items:center;flex-wrap:wrap}
+.ct-r input[type=text]{width:140px}
+.ct-who{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--rule,#3a4a46)}
+#dkTxt:disabled{opacity:.6}
+
 </style>
 <script id="add-js">
 'use strict';
@@ -5814,6 +5826,73 @@ for(const n of['ghOpen','ghLoad','ghSet','ghClear','ghAll','ghOne','ghPlay','ghB
 // 자료 화면에 단추
 const _scnAssetsGh0=scnAssets;scnAssets=function(){const h=_scnAssetsGh0(),k=UI.con.ak||'bg';if(k==='react'||k==='ptc'||k==='fg')return h;
  return h.replace(/(<button class="btn sm pri" data-a="astAdd" data-v="[a-z]+">[^<]*<\/button>)<\/div>$/,'$1<button class="btn sm" data-a="ghOpen" title="깃허브 저장소의 bgm·sfx·bg 폴더에서 불러와요">깃허브에서 불러오기</button></div>')};
+
+/* ───── 채팅 탭 ─────
+   마스터가 채팅창에 탭을 더 만든다. 탭마다 보이는 사람을 정한다.
+   · 모두에게 보이는 탭: play/chatx/<탭>에 쌓인다.
+   · 마스터만, 또는 고른 사람만 보이는 탭: 받을 사람 각자의 개인함(priv)으로만 보낸다. 못 보는 사람에게는 글이 아예 가지 않는다.
+   탭 정의(이름·보이는 사람)는 play/chatTabs에 둔다. */
+const CT={sig:'',seen:{}};try{CT.seen=JSON.parse(localStorage.getItem('coc-ctab')||'{}')||{}}catch{}
+const ctSaveSeen=()=>{try{localStorage.setItem('coc-ctab',JSON.stringify(CT.seen))}catch{}};
+XK.add('ctab');
+const ctDefs=()=>sortO(Store.get('play/chatTabs')).map(d=>({...d,k:d.id}));
+const ctWho=d=>Object.keys(d.who||{}).map(decK);
+const ctCan=d=>!!d&&(d.vis==='all'||isGm()||(d.vis==='list'&&ctWho(d).includes(ME)));
+const ctCanWrite=d=>ctCan(d)&&(!d.ro||isGm());
+const ctVis=()=>ctDefs().filter(ctCan);
+const ctPrivRaw=()=>{const o=NET.on?PRIV.box:(Store.get('play/priv')||{});return Object.entries(o).filter(([k,v])=>v&&typeof v==='object'&&k[0]!=='_').map(([k,v])=>({...v,k}))};
+// 쪽지함·은닉 대화에는 탭 글이 섞이지 않게
+const _privListCt0=privList;privList=function(){return _privListCt0().filter(m=>m.kind!=='ctab')};
+function ctMsgs(d){const L=d.vis==='all'?listOf('play/chatx/'+d.k):ctPrivRaw().filter(m=>m.kind==='ctab'&&m.tab===d.k).map(m=>({...m,uid:m.uid||m.from}));return L.sort((a,b)=>(a.t||0)-(b.t||0))}
+const ctUnread=d=>{const s=Math.max(CT.seen[d.k]||0,DOCK.t0||0);return ctMsgs(d).filter(m=>(m.t||0)>s&&m.uid!==ME).length};
+const ctCur=()=>DOCK.tab.startsWith('x:')?ctVis().find(d=>d.k===DOCK.tab.slice(2))||null:null;
+const _dockUnreadCt0=dockUnread;dockUnread=function(){const c=ctCur();return _dockUnreadCt0()+ctVis().filter(d=>!(DOCK.open&&c&&c.k===d.k)).reduce((n,d)=>n+ctUnread(d),0)};
+function ctSend(d,txt){txt=String(txt||'').trim().slice(0,300);if(!txt||!ctCanWrite(d))return;const t=nowT();
+ if(d.vis==='all'){Store.push('play/chatx/'+d.k,{t,uid:ME,txt});const L=listOf('play/chatx/'+d.k);for(const e of L.slice(0,Math.max(0,L.length-200)))Store.set(`play/chatx/${d.k}/${e.k}`,null,true);return}
+ const to=new Set([...gmIds(),...(d.vis==='list'?ctWho(d):[]),ME]),id=uid();for(const u of to)privPut(u,id,{t,from:ME,uid:ME,to:u,kind:'ctab',tab:d.k,txt,...(u===ME?{out:1}:{})})}
+const ctSeeLabel=d=>d.vis==='all'?'모두':d.vis==='gm'?'마스터만':'마스터와 '+(ctWho(d).join(', ')||'아무도 안 고름');
+// 채팅창 그리기: 원래 그림 위에 탭 단추와 탭 내용을 덧입힌다
+const _paintDockCt0=paintDock;
+paintDock=function(){if(DOCK.tab.startsWith('x:')&&!ctCur())DOCK.tab='chat';const d=ctCur(),V=ctVis();
+ if(d&&DOCK.open){const L=ctMsgs(d);if(L.length)CT.seen[d.k]=Math.max(CT.seen[d.k]||0,L.at(-1).t||0)}
+ const sig=JSON.stringify([V.map(x=>[x.k,x.name,x.vis,x.ro,ctUnread(x)]),d?[d.k,ctMsgs(d).length,ctMsgs(d).at(-1)?.k]:0,isGm()]);if(sig!==CT.sig){CT.sig=sig;DOCK.sig='';ctSaveSeen()}
+ if(d){const t=DOCK.tab,sc=DOCK.seenC;DOCK.tab='chat';try{_paintDockCt0()}finally{DOCK.tab=t;DOCK.seenC=sc}}else _paintDockCt0();
+ const el=$('#dock'),hd=el?.querySelector('.dk-hd');if(!hd||hd.querySelector('.ct-b,.ct-add'))return;
+ const dice=hd.querySelector('[data-a=dockTab][data-v=dice]');let h='';for(const x of V){const u=d&&d.k===x.k?0:ctUnread(x);h+=`<button class="ct-b ${d&&d.k===x.k?'on':''}" data-a="ctTab" data-v="${esc(x.k)}" title="보이는 사람: ${esc(ctSeeLabel(x))}${x.ro?' · 마스터만 씀':''}">${x.vis!=='all'?'<i class="ct-lock" aria-label="숨김 탭">●</i>':''}${esc(x.name||'탭')}${u?`<small>+${u}</small>`:''}</button>`}
+ if(isGm())h+='<button class="ct-add" data-a="ctManage" title="채팅 탭 만들기·관리" aria-label="채팅 탭 관리">+</button>';
+ dice?.insertAdjacentHTML('afterend',h);
+ if(!d)return;hd.querySelector('[data-a=dockTab][data-v=chat]')?.classList.remove('on');
+ const body=$('#dkBody'),L=ctMsgs(d);if(body){body.innerHTML=(d.vis!=='all'?`<p class="ct-note">● ${esc(ctSeeLabel(d))}에게만 보이는 탭이에요.</p>`:'')+(L.length?L.map(m=>`<div class="cm ${m.uid===ME?'me':''}"><b class="${isGmId(m.uid)?'gm':''}">${esc(m.uid||'?')}${isGmId(m.uid)?' (GM)':''}</b>${esc(m.txt||'')}<time>${hhmm(m.t)}</time></div>`).join(''):`<p class="dk-empty">아직 「${esc(d.name||'탭')}」에 글이 없어요.</p>`);body.scrollTop=body.scrollHeight}
+ const i=$('#dkTxt');if(i){if(ctCanWrite(d))i.placeholder=`「${d.name||'탭'}」에 보내기 · /r 굴림은 주사위 탭으로 가요`;else{i.disabled=true;i.placeholder='마스터만 쓰는 탭이에요';el.querySelector('[data-a=dockSend]')?.setAttribute('disabled','')}}};
+const _dockSendCt0=A.dockSend;
+A.dockSend=function(){const d=ctCur(),i=$('#dkTxt'),v=(i?.value||'').trim();if(!d||!v||v.startsWith('/'))return _dockSendCt0.call(A);i.value='';ctSend(d,v);CT.sig='';paintDock();$('#dkTxt')?.focus()};
+A.ctTab=function(e){DOCK.tab='x:'+e.dataset.v;DOCK.sig='';CT.sig='';paintDock();setTimeout(()=>$('#dkTxt')?.focus(),0)};
+const _privPumpCt0=privPump;privPump=function(){_privPumpCt0();paintDock()};
+
+/* ── 관리 창 (마스터) ── */
+const CT_TITLE='채팅 탭';UI.ct={name:'',vis:'all',ro:false};
+function ctWin(){const D=ctDefs(),P=NET.on?peers():[],u=UI.ct,VS=[['all','모두'],['gm','마스터만'],['list','고른 사람만']];
+ const who=d=>d.vis!=='list'?'':`<div class="ct-who">${P.length?P.filter(([id])=>!gmIds().includes(id)).map(([id,lbl])=>`<label class="small"><input type="checkbox" data-c="ctWho" data-k="${esc(d.k)}" data-v="${esc(id)}" ${d.who?.[encK(id)]?'checked':''}> ${esc(lbl)}</label>`).join('')||'<span class="small muted">마스터 말고 접속한 사람이 없어요.</span>':'<span class="small muted">온라인 방에서 접속한 사람 중에 고를 수 있어요.</span>'}</div>`;
+ return`<div class="ct-w"><p class="small muted" style="margin-top:0">채팅창에 탭을 더 만들어요. 「마스터만」과 「고른 사람만」 탭의 글은 볼 수 있는 사람에게만 전달돼서, 못 보는 사람의 화면에는 탭도 글도 나타나지 않아요. 마스터는 모든 탭을 봐요.</p>
+ ${D.map((d,i)=>`<div class="ct-r"><div class="row"><input type="text" data-c="ctName" data-k="${esc(d.k)}" value="${esc(d.name||'')}" aria-label="탭 이름" maxlength="16"><select data-c="ctVisS" data-k="${esc(d.k)}" aria-label="보이는 사람">${pOpts(VS,d.vis||'all')}</select><label class="small"><input type="checkbox" data-c="ctRo" data-k="${esc(d.k)}" ${d.ro?'checked':''}> 마스터만 쓰기</label><span class="grow"></span>${i?`<button class="btn sm" data-a="ctUp" data-v="${esc(d.k)}" aria-label="위로">↑</button>`:''}<button class="lnk" data-a="ctDel" data-v="${esc(d.k)}">삭제</button></div>${who(d)}</div>`).join('')||'<p class="muted">아직 만든 탭이 없어요.</p>'}
+ <h4 style="margin:14px 0 6px">새 탭</h4><div class="row"><input type="text" id="ctNm" data-keep="1" placeholder="탭 이름" maxlength="16" value="${esc(u.name)}"><select id="ctVs" data-keep="1" aria-label="보이는 사람">${pOpts(VS,u.vis)}</select><button class="btn pri" data-a="ctAdd">만들기</button></div>
+ <div class="row" style="margin-top:6px"><span class="small">빠르게</span><button class="btn sm" data-a="ctQuick" data-v="잡담|all|0">잡담</button><button class="btn sm" data-a="ctQuick" data-v="정보|all|1">정보 (마스터만 씀)</button><button class="btn sm" data-a="ctQuick" data-v="관전|list|0">관전 (고른 사람만)</button><button class="btn sm" data-a="ctQuick" data-v="마스터|gm|0">마스터끼리</button></div>
+ <p class="small muted">「고른 사람만」 탭은 고른 뒤부터 쓴 글만 보여요. 나중에 넣은 사람은 이전 글을 못 봐요.</p>
+ <div class="mfoot"><button class="btn" data-a="closeModal">닫기</button></div></div>`}
+const ctMk=(name,vis,ro)=>{const id=uid();Store.set('play/chatTabs/'+id,{name:String(name).slice(0,16),vis,ro:!!ro,o:Date.now()});return id};
+const ctDefOf=k=>ctDefs().find(d=>d.k===k);
+Object.assign(A,{
+ ctManage(){if(!isGm())return;openModal(CT_TITLE,ctWin)},
+ ctAdd(){const n=($('#ctNm')?.value||'').trim();if(!n)return toast('탭 이름을 넣어 주세요',1);ctMk(n,$('#ctVs')?.value||'all',false);UI.ct.name='';drawModal()},
+ ctQuick(e){const[n,v,r]=e.dataset.v.split('|');ctMk(n,v,r==='1');drawModal()},
+ ctDel(e){const d=ctDefOf(e.dataset.v);if(!d||!confirm(`「${d.name}」 탭을 지울까요? 모두에게 보이는 탭이면 글도 함께 지워져요.`))return;Store.set('play/chatTabs/'+d.k,null);Store.set('play/chatx/'+d.k,null);if(DOCK.tab==='x:'+d.k)DOCK.tab='chat';drawModal()},
+ ctUp(e){const D=ctDefs(),i=D.findIndex(d=>d.k===e.dataset.v);if(i<1)return;const a=D[i-1].o||0,b=D[i].o||0;Store.set(`play/chatTabs/${D[i].k}/o`,a);Store.set(`play/chatTabs/${D[i-1].k}/o`,b===a?a+1:b);drawModal()}});
+Object.assign(CHANGE,{
+ ctName(el){Store.set(`play/chatTabs/${el.dataset.k}/name`,String(el.value).trim().slice(0,16)||'탭')},
+ ctVisS(el){Store.set(`play/chatTabs/${el.dataset.k}/vis`,el.value);drawModal()},
+ ctRo(el){Store.set(`play/chatTabs/${el.dataset.k}/ro`,el.checked)},
+ ctWho(el){Store.set(`play/chatTabs/${el.dataset.k}/who/${encK(el.dataset.v)}`,el.checked?true:null)}});
+for(const n of['ctManage','ctAdd','ctQuick','ctDel','ctUp'])NET_GM.add(n);for(const n of['ctName','ctVisS','ctRo','ctWho'])NET_GM_C.add(n);
 
 </script>
 <style id="art-css">
