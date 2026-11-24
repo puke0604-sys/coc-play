@@ -5393,6 +5393,19 @@ body:not(.pth-on) .pth-l{display:none}
 .ct-r input[type=text]{width:140px}
 .ct-who{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px;padding-top:6px;border-top:1px dashed var(--rule,#3a4a46)}
 #dkTxt:disabled{opacity:.6}
+.dk-hd .ct-q{padding:2px 7px;color:var(--mute);display:inline-flex;align-items:center}
+.dk-hd .ct-q:hover,.dk-hd .ct-q.on{color:var(--ink)}
+.ct-find{display:flex;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--rule,#3a4a46)}
+.ct-find input{flex:1;min-width:0}
+.ct-find .ct-cnt{font-size:12px;color:var(--mute);white-space:nowrap}
+.ct-find button{padding:3px 9px;line-height:1}
+#dkBody .ct-hide{display:none!important}
+mark.ct-hit{background:rgba(232,196,96,.42);color:inherit;padding:0 1px;border-radius:2px}
+
+.rj-q .rj-san{border-color:#4f6f66;background:linear-gradient(180deg,rgba(111,183,164,.12),transparent)}
+.rj-q .rj-san span{color:#9fd3c3}
+.san-hint{margin:2px 0 8px}
+.san-hint b{color:var(--ink)}
 
 </style>
 <script id="add-js">
@@ -5893,6 +5906,59 @@ Object.assign(CHANGE,{
  ctRo(el){Store.set(`play/chatTabs/${el.dataset.k}/ro`,el.checked)},
  ctWho(el){Store.set(`play/chatTabs/${el.dataset.k}/who/${encK(el.dataset.v)}`,el.checked?true:null)}});
 for(const n of['ctManage','ctAdd','ctQuick','ctDel','ctUp'])NET_GM.add(n);for(const n of['ctName','ctVisS','ctRo','ctWho'])NET_GM_C.add(n);
+
+/* ── 탭 안에서 찾기 ──
+   채팅창 머리의 「찾기」를 누르면 지금 보고 있는 탭(기본 채팅·주사위·만든 탭 모두)에 검색칸이 열린다.
+   띄어쓰기로 나눈 낱말이 모두 들어 있는 글만 남기고, 찾은 낱말에 형광펜을 칠한다. 탭마다 검색어를 따로 기억한다. */
+CT.q={};CT.qOn={};const CT_ORIG=new WeakMap();
+const ctQTerms=()=>(CT.q[DOCK.tab]||'').toLowerCase().split(/\s+/).filter(Boolean);
+function ctMark(el,T){const w=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),N=[];while(w.nextNode())N.push(w.currentNode);
+ const re=new RegExp('('+T.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|')+')','gi');
+ for(const n of N){if(!re.test(n.nodeValue))continue;re.lastIndex=0;const f=document.createDocumentFragment();let i=0;n.nodeValue.replace(re,(m,_,o)=>{f.append(n.nodeValue.slice(i,o));const k=document.createElement('mark');k.className='ct-hit';k.textContent=m;f.append(k);i=o+m.length;return m});f.append(n.nodeValue.slice(i));n.replaceWith(f)}}
+function ctApply(){const body=$('#dkBody'),bar=$('#ctFind');if(!body)return;body.querySelector('.ct-none')?.remove();
+ const on=!!CT.qOn[DOCK.tab],T=on?ctQTerms():[],I=[...body.children].filter(e=>!e.matches('.ct-note,.dk-empty'));let n=0;
+ for(const e of I){if(CT_ORIG.has(e))e.innerHTML=CT_ORIG.get(e);else CT_ORIG.set(e,e.innerHTML);
+  const hit=!T.length||T.every(t=>e.textContent.toLowerCase().includes(t));e.classList.toggle('ct-hide',!hit);if(hit&&T.length){n++;ctMark(e,T)}}
+ const c=bar?.querySelector('.ct-cnt');if(c)c.textContent=T.length?`${n}건`:'';
+ if(T.length&&!n)body.insertAdjacentHTML('beforeend',`<p class="dk-empty ct-none">「${esc(CT.q[DOCK.tab])}」이(가) 들어간 글이 없어요.</p>`);
+ if(T.length)body.scrollTop=body.scrollHeight}
+const _paintDockQ0=paintDock;
+paintDock=function(){const a=document.activeElement,f=a&&a.id==='ctQ'?[a.selectionStart,a.selectionEnd]:null;_paintDockQ0();
+ const el=$('#dock'),hd=el?.querySelector('.dk-hd');if(!hd)return;const on=!!CT.qOn[DOCK.tab];
+ if(!hd.querySelector('.ct-q')){const x=hd.querySelector('[data-a=dockToggle]');const h=`<button class="ct-q ${on?'on':''}" data-a="ctFind" title="이 탭에서 찾기" aria-label="이 탭에서 찾기"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>`;x?x.insertAdjacentHTML('beforebegin',h):hd.insertAdjacentHTML('beforeend',h)}
+ if(on&&!$('#ctFind')){hd.insertAdjacentHTML('afterend',`<div class="ct-find" id="ctFind"><input id="ctQ" placeholder="이 탭에서 찾기 · 띄어쓰기로 여러 낱말" autocomplete="off" maxlength="60"><span class="ct-cnt"></span><button class="btn" data-a="ctFindX" aria-label="찾기 닫기">×</button></div>`);
+  const q=$('#ctQ');q.value=CT.q[DOCK.tab]||'';q.addEventListener('input',()=>{CT.q[DOCK.tab]=q.value;ctApply()});
+  q.addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.preventDefault();ev.stopPropagation();A.ctFindX()}});
+  if(f){q.focus();try{q.setSelectionRange(f[0],f[1])}catch{}}}
+ ctApply()};
+A.ctFind=function(){const t=DOCK.tab;CT.qOn[t]=!CT.qOn[t];if(!CT.qOn[t])CT.q[t]='';DOCK.sig='';CT.sig='';paintDock();if(CT.qOn[t])setTimeout(()=>$('#ctQ')?.focus(),0)};
+A.ctFindX=function(){CT.qOn[DOCK.tab]=false;CT.q[DOCK.tab]='';DOCK.sig='';CT.sig='';paintDock();$('#dkTxt')?.focus()};
+
+/* ───── 이성 판정 다듬기 ─────
+   · 판정 창의 빠른 단추 줄에 「이성」을 넣는다. 누르면 같은 탐사자로 이성 판정 창이 열린다.
+   · 시트에서 연 이성 판정은 손실이 비어 있게 시작한다 (예전엔 0/1이 기본이라 실패하면 늘 1만 깎였다).
+     시나리오·마스터 요청처럼 손실이 정해져 온 경우는 그 값을 그대로 쓴다.
+   · 자주 쓰는 손실 단추를 늘리고, 손실 칸 아래에 성공·실패·대실패 때 얼마나 잃는지 풀어 쓴다. */
+SAN_PRE.splice(0,SAN_PRE.length,'0/1','0/1d2','0/1d3','0/1d4','0/1d6','1/1d3','1/1d4','1/1d6','1/1d8','1/1d10','1d3/1d6','1d4/1d8','1d6/1d10','1/1d20','1d6/1d20','1d10/1d100');
+const _rollModalS0=rollModal;
+rollModal=function(){let h=_rollModalS0();const r=UI.roll,c=CH(r?.id);if(!c||r.inv)return h;
+ const b=`<button class="rj-san" data-a="rjSan" title="이성 판정 (손실을 정하고 굴려요)"><span>이성</span><b class="num">${curOf(c,'san')}</b></button>`;
+ const i=h.indexOf('<div class="rj-q">');if(i<0)return h;const j=h.indexOf('</div>',i);return h.slice(0,j)+b+h.slice(j)};
+A.rjSan=function(){const r=UI.roll,id=r?.id;if(!CH(id))return;UI.san={id,loss:'',src:r.ctx||'',res:null};UI.roll=UI.san;UI.skp.q='';openModal('이성 판정',sanModal);setTimeout(()=>$('#modal [data-u=loss]')?.focus(),0)};
+const _sanOpenS0=A.sanOpen;
+A.sanOpen=function(e){_sanOpenS0.call(A,e);if(UI.san&&!UI.san.res&&UI.san.loss==='0/1'){UI.san.loss='';drawModal();setTimeout(()=>$('#modal [data-u=loss]')?.focus(),0)}};
+const _sanRollS0=A.sanRoll;
+A.sanRoll=function(){const v=UI.san;if(v&&!v.res&&!String(v.loss||'').trim()){toast('손실을 먼저 정해 주세요 (예: 1/1d6)',1);$('#modal [data-u=loss]')?.focus();return}return _sanRollS0.call(A)};
+function sanLossTxt(loss){const s=String(loss||'').trim();if(!s)return'성공/실패 순서로 적어요. 예: 0/1d3, 1/1d6, 1d6/1d10';const[a,b]=splitLoss(s);if(!exprOk(a)||!exprOk(b))return'0/1d6처럼 적어 주세요.';
+ let mx='';try{mx=exprRoll(b,'0','max').total}catch{}return`성공하면 <b>${esc(a)}</b>, 실패하면 <b>${esc(b)}</b> 잃어요.${R('fumbleMax')&&mx!==''?` 대실패면 최댓값 <b>${mx}</b>.`:''}`}
+const _sanModalS0=sanModal;
+sanModal=function(){let h=_sanModalS0();const v=UI.san;if(!v||v.res)return h;
+ h=h.replace('data-u="loss"','data-u="loss" placeholder="예: 1/1d6"');
+ const k=h.indexOf('<div class="chips">'),e=k>=0?h.indexOf('</div>',k)+6:-1;if(k>=0)h=h.slice(0,k)+`<p class="small muted san-hint">${sanLossTxt(v.loss)}</p>`+h.slice(e);return h};
+/* 손실 칸에서 Enter를 누르면 바로 굴린다 */
+document.addEventListener('keydown',ev=>{const t=ev.target;if(ev.key!=='Enter'||ev.isComposing||t?.dataset?.u!=='loss'||!UI.san||UI.san.res)return;ev.preventDefault();UI.san.loss=t.value;if(netBlocked('sanRoll',t))return;t.blur();A.sanRoll()},true);
+/* 손실 칸에 쓰는 동안 풀이 문장만 바꾼다 (창 전체를 다시 그리면 입력이 끊긴다) */
+document.addEventListener('input',ev=>{const t=ev.target;if(t?.dataset?.u!=='loss'||!UI.san||UI.san.res)return;const p=$('#modal .san-hint');if(p)p.innerHTML=sanLossTxt(t.value)});
 
 </script>
 <style id="art-css">
